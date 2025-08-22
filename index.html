@@ -1,0 +1,472 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to PDF (2-up 5x7)</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Basic CSS for a clean look */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #1c1e21;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #606770;
+            margin-bottom: 25px;
+        }
+        
+        /* Style for the file input button */
+        .file-input-wrapper {
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            background-color: #e4e6eb;
+            color: #4b4f56;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        
+        .file-label:hover {
+            background-color: #dcdfe3;
+        }
+        
+        #fileName {
+            display: block;
+            margin-top: 10px;
+            font-style: italic;
+            color: #606770;
+            min-height: 20px;
+        }
+
+        /* Style for the main action button */
+        #convertBtn {
+            background-color: #1877f2;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            width: 100%;
+        }
+
+        #convertBtn:hover {
+            background-color: #166fe5;
+        }
+
+        #convertBtn:active {
+            transform: scale(0.98);
+        }
+        
+        #convertBtn:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Image to PDF Converter 🖼️➡️📄</h1>
+        <p>Creates an A4 landscape PDF with two 5x7 inch copies of your image.</p>
+
+        <div class="file-input-wrapper">
+            <label for="imageLoader" class="file-label">Choose Image</label>
+            <input type="file" id="imageLoader" accept="image/*" />
+            <span id="fileName">No file selected</span>
+        </div>
+
+        <button id="convertBtn">Generate PDF</button>
+    </div>
+
+    <script>
+        // Use the global jspdf object from the script tag
+        const { jsPDF } = window.jspdf;
+
+        // Get references to our HTML elements
+        const imageLoader = document.getElementById('imageLoader');
+        const convertBtn = document.getElementById('convertBtn');
+        const fileNameSpan = document.getElementById('fileName');
+
+        let imageData = null; // This will store the base64 encoded image data
+
+        // Listen for when the user selects a file
+        imageLoader.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                imageData = null;
+                fileNameSpan.textContent = 'No file selected';
+                return;
+            }
+
+            // Update the file name display
+            fileNameSpan.textContent = file.name;
+            
+            // Use FileReader to read the image and convert it to a data URL
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imageData = e.target.result; // The result is a base64 data URL
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Listen for clicks on the "Generate PDF" button
+        convertBtn.addEventListener('click', () => {
+            // 1. VALIDATION: Check if an image has been selected
+            if (!imageData) {
+                alert('Please select an image file first!');
+                return;
+            }
+            
+            // Provide user feedback
+            convertBtn.textContent = 'Generating...';
+            convertBtn.disabled = true;
+
+            try {
+                // 2. INITIALIZE PDF: Create a new jsPDF document
+                // 'l' for landscape, 'in' for inches, 'a4' for the page size
+                const doc = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'in',
+                    format: 'a4'
+                });
+
+                // 3. DEFINE DIMENSIONS & POSITIONS
+                // A4 landscape dimensions are 11.69 x 8.27 inches
+                const A4_WIDTH = 11.69;
+                const A4_HEIGHT = 8.27;
+
+                // Our target image dimensions
+                const IMG_WIDTH = 5;
+                const IMG_HEIGHT = 7;
+
+                // Calculate margins to center the two images on the page
+                // Horizontal margin: (Page Width - Total Image Width) / 2
+                const xMargin = (A4_WIDTH - (IMG_WIDTH * 2)) / 2;
+                // Vertical margin: (Page Height - Image Height) / 2
+                const yMargin = (A4_HEIGHT - IMG_HEIGHT) / 2;
+                
+                // Position for the first image (left side)
+                const x1 = xMargin;
+                const y1 = yMargin;
+
+                // Position for the second image (right side)
+                const x2 = xMargin + IMG_WIDTH;
+                const y2 = yMargin;
+
+                // 4. ADD IMAGES TO PDF
+                // The addImage method takes the image data, format, x, y, width, and height
+                doc.addImage(imageData, 'JPEG', x1, y1, IMG_WIDTH, IMG_HEIGHT);
+                doc.addImage(imageData, 'JPEG', x2, y2, IMG_WIDTH, IMG_HEIGHT);
+                
+                // 5. SAVE PDF
+                // This will trigger the download in the browser
+                doc.save('A4_5x7_double.pdf');
+
+            } catch (error) {
+                console.error("Failed to generate PDF:", error);
+                alert("An error occurred while generating the PDF. Please try again.");
+            } finally {
+                // Reset the button state after the process is complete
+                convertBtn.textContent = 'Generate PDF';
+                convertBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to PDF (2-up 5x7)</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Basic CSS for a clean look */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #1c1e21;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #606770;
+            margin-bottom: 25px;
+        }
+        
+        /* Style for the file input button */
+        .file-input-wrapper {
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            background-color: #e4e6eb;
+            color: #4b4f56;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        
+        .file-label:hover {
+            background-color: #dcdfe3;
+        }
+        
+        #fileName {
+            display: block;
+            margin-top: 10px;
+            font-style: italic;
+            color: #606770;
+            min-height: 20px;
+        }
+        
+        .options-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px; /* Creates space between checkbox and label */
+            margin-bottom: 25px;
+            cursor: pointer; /* Makes the whole area clickable */
+        }
+
+        #bwOption {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Style for the main action button */
+        #convertBtn {
+            background-color: #1877f2;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            width: 100%;
+        }
+
+        #convertBtn:hover {
+            background-color: #166fe5;
+        }
+
+        #convertBtn:active {
+            transform: scale(0.98);
+        }
+        
+        #convertBtn:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Image to PDF Converter 🖼️➡️📄</h1>
+        <p>Creates an A4 landscape PDF with two 5x7 inch copies of your image.</p>
+
+        <div class="file-input-wrapper">
+            <label for="imageLoader" class="file-label">Choose Image</label>
+            <input type="file" id="imageLoader" accept="image/*" />
+            <span id="fileName">No file selected</span>
+        </div>
+        
+        <label class="options-wrapper" for="bwOption">
+            <input type="checkbox" id="bwOption">
+            <span>Download as Black and White</span>
+        </label>
+
+        <button id="convertBtn">Generate PDF</button>
+    </div>
+
+    <script>
+        // Use the global jspdf object from the script tag
+        const { jsPDF } = window.jspdf;
+
+        // Get references to our HTML elements
+        const imageLoader = document.getElementById('imageLoader');
+        const convertBtn = document.getElementById('convertBtn');
+        const fileNameSpan = document.getElementById('fileName');
+        const bwOption = document.getElementById('bwOption');
+
+        let originalImageData = null; // This will store the base64 encoded image data
+
+        // Listen for when the user selects a file
+        imageLoader.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                originalImageData = null;
+                fileNameSpan.textContent = 'No file selected';
+                return;
+            }
+
+            fileNameSpan.textContent = file.name;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                originalImageData = e.target.result; // The result is a base64 data URL
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        // Function to convert an image data URL to grayscale
+        function toGrayscale(imageDataUrl) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imgData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                        data[i] = avg; // red
+                        data[i + 1] = avg; // green
+                        data[i + 2] = avg; // blue
+                    }
+                    ctx.putImageData(imgData, 0, 0);
+                    resolve(canvas.toDataURL('image/jpeg'));
+                };
+                img.src = imageDataUrl;
+            });
+        }
+
+        // Listen for clicks on the "Generate PDF" button (now an async function)
+        convertBtn.addEventListener('click', async () => {
+            if (!originalImageData) {
+                alert('Please select an image file first!');
+                return;
+            }
+            
+            convertBtn.textContent = 'Generating...';
+            convertBtn.disabled = true;
+
+            try {
+                let imageDataForPdf = originalImageData;
+                let isBlackAndWhite = false;
+
+                // Check if the B&W option is checked and convert the image
+                if (bwOption.checked) {
+                    imageDataForPdf = await toGrayscale(originalImageData);
+                    isBlackAndWhite = true;
+                }
+
+                const doc = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'in',
+                    format: 'a4'
+                });
+
+                // Define constants for layout
+                const A4_WIDTH = 11.69;
+                const A4_HEIGHT = 8.27;
+                const IMG_WIDTH = 5;
+                const IMG_HEIGHT = 7;
+                const SPACE_BETWEEN = 0.25; // Define the space between images
+
+                // Calculate margins to center the block of images
+                const totalContentWidth = (IMG_WIDTH * 2) + SPACE_BETWEEN;
+                const xMargin = (A4_WIDTH - totalContentWidth) / 2;
+                const yMargin = (A4_HEIGHT - IMG_HEIGHT) / 2;
+                
+                // Position for the first image (left)
+                const x1 = xMargin;
+                const y1 = yMargin;
+
+                // Position for the second image (right), including the space
+                const x2 = xMargin + IMG_WIDTH + SPACE_BETWEEN;
+                const y2 = yMargin;
+
+                doc.addImage(imageDataForPdf, 'JPEG', x1, y1, IMG_WIDTH, IMG_HEIGHT);
+                doc.addImage(imageDataForPdf, 'JPEG', x2, y2, IMG_WIDTH, IMG_HEIGHT);
+                
+                // Determine the filename based on the B&W option
+                const fileName = isBlackAndWhite ? 'A4_5x7_double_bw.pdf' : 'A4_5x7_double_color.pdf';
+                doc.save(fileName);
+
+            } catch (error) {
+                console.error("Failed to generate PDF:", error);
+                alert("An error occurred while generating the PDF. Please try again.");
+            } finally {
+                // Reset the button state
+                convertBtn.textContent = 'Generate PDF';
+                convertBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
